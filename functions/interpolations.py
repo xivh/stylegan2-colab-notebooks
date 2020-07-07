@@ -23,7 +23,7 @@ from PIL import ImageDraw
 import moviepy.editor
 
 # make an interpolation video grid
-def make_video(grid_size = [4, 4], duration_sec = 60.0, mp4_fps = 20, random_seed=397, Gs=Gs):
+def make_video(grid_size = [4, 4], duration_sec = 60.0, mp4_fps = 20, random_seed=397, Gs):
     image_shrink = 1
     image_zoom = 1
     smoothing_sec = 1.0
@@ -83,7 +83,7 @@ def make_video(grid_size = [4, 4], duration_sec = 60.0, mp4_fps = 20, random_see
     return mp4_file
 
 # interpolate between two seeds and generate a video
-def interpolate_between_seeds(seed_array, truncation, duration_sec = 10.0, smoothing_sec = 1.0, mp4_fps = 20, filename=None, text=False, Gs=Gs):
+def interpolate_between_seeds(seed_array, truncation, duration_sec = 10.0, smoothing_sec = 1.0, mp4_fps = 20, filename=None, text=False, Gs):
     #_G, _D, Gs = pickle.load(open("/content/network-e621.pkl", "rb"))
     noise_vars = [var for name, var in Gs.components.synthesis.vars.items() if name.startswith('noise')]
     if seed_array[0] != seed_array[-1]:
@@ -151,7 +151,7 @@ def interpolate_between_seeds(seed_array, truncation, duration_sec = 10.0, smoot
     return mp4_file
 
 # make a circular interpolation video
-def circular_interpolation(seed_a, seed_b, seed_c, radius = 40.0, Gs=Gs):
+def circular_interpolation(seed_a, seed_b, seed_c, radius = 40.0, Gs):
     rnd = np.random
     latents_a = np.random.RandomState(seed_a).randn(1, Gs.input_shape[1])
     latents_b = np.random.RandomState(seed_b).randn(1, Gs.input_shape[1])
@@ -228,7 +228,7 @@ def circular_interpolation(seed_a, seed_b, seed_c, radius = 40.0, Gs=Gs):
     return mp4_file
 
 # generate images from seeds
-def generate_images(seeds, truncation_psi, Gs=Gs):
+def generate_images(seeds, truncation_psi, Gs):
     noise_vars = [var for name, var in Gs.components.synthesis.vars.items() if name.startswith('noise')]
     Gs_kwargs = dnnlib.EasyDict()
     Gs_kwargs.output_transform = dict(func=tflib.convert_images_to_uint8, nchw_to_nhwc=True)
@@ -247,7 +247,7 @@ def generate_images(seeds, truncation_psi, Gs=Gs):
         display(PIL.Image.fromarray(images[0], 'RGB'))
 
 # blend two seeds together
-def blend_images(src_seed, dst_seed, blending=0.5, truncation_psi=0.7, Gs=Gs):
+def blend_images(src_seed, dst_seed, blending=0.5, truncation_psi=0.7, Gs):
     #_G, _D, Gs = pickle.load(open("/content/network-e621.pkl", "rb"))
     noise_vars = [var for name, var in Gs.components.synthesis.vars.items() if name.startswith('noise')]
     Gs_kwargs = dnnlib.EasyDict()
