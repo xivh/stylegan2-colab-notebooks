@@ -23,7 +23,7 @@ from PIL import ImageDraw
 import moviepy.editor
 
 # make an interpolation video grid
-def make_video(grid_size = [4, 4], duration_sec = 60.0, mp4_fps = 20, random_seed=397, Gs):
+def make_video(Gs, grid_size = [4, 4], duration_sec = 60.0, mp4_fps = 20, random_seed=397):
     image_shrink = 1
     image_zoom = 1
     smoothing_sec = 1.0
@@ -83,7 +83,7 @@ def make_video(grid_size = [4, 4], duration_sec = 60.0, mp4_fps = 20, random_see
     return mp4_file
 
 # interpolate between two seeds and generate a video
-def interpolate_between_seeds(seed_array, truncation, duration_sec = 10.0, smoothing_sec = 1.0, mp4_fps = 20, filename=None, text=False, Gs):
+def interpolate_between_seeds(Gs, seed_array, truncation, duration_sec = 10.0, smoothing_sec = 1.0, mp4_fps = 20, filename=None, text=False):
     #_G, _D, Gs = pickle.load(open("/content/network-e621.pkl", "rb"))
     noise_vars = [var for name, var in Gs.components.synthesis.vars.items() if name.startswith('noise')]
     if seed_array[0] != seed_array[-1]:
@@ -151,7 +151,7 @@ def interpolate_between_seeds(seed_array, truncation, duration_sec = 10.0, smoot
     return mp4_file
 
 # make a circular interpolation video
-def circular_interpolation(seed_a, seed_b, seed_c, radius = 40.0, Gs):
+def circular_interpolation(Gs, seed_a, seed_b, seed_c, radius = 40.0):
     rnd = np.random
     latents_a = np.random.RandomState(seed_a).randn(1, Gs.input_shape[1])
     latents_b = np.random.RandomState(seed_b).randn(1, Gs.input_shape[1])
@@ -228,7 +228,7 @@ def circular_interpolation(seed_a, seed_b, seed_c, radius = 40.0, Gs):
     return mp4_file
 
 # generate images from seeds
-def generate_images(seeds, truncation_psi, Gs):
+def generate_images(Gs, seeds, truncation_psi):
     noise_vars = [var for name, var in Gs.components.synthesis.vars.items() if name.startswith('noise')]
     Gs_kwargs = dnnlib.EasyDict()
     Gs_kwargs.output_transform = dict(func=tflib.convert_images_to_uint8, nchw_to_nhwc=True)
@@ -247,7 +247,7 @@ def generate_images(seeds, truncation_psi, Gs):
         display(PIL.Image.fromarray(images[0], 'RGB'))
 
 # blend two seeds together
-def blend_images(src_seed, dst_seed, blending=0.5, truncation_psi=0.7, Gs):
+def blend_images(Gs, src_seed, dst_seed, blending=0.5, truncation_psi=0.7):
     #_G, _D, Gs = pickle.load(open("/content/network-e621.pkl", "rb"))
     noise_vars = [var for name, var in Gs.components.synthesis.vars.items() if name.startswith('noise')]
     Gs_kwargs = dnnlib.EasyDict()
@@ -273,3 +273,86 @@ def blend_images(src_seed, dst_seed, blending=0.5, truncation_psi=0.7, Gs):
 
     PIL.Image.fromarray(images[0], 'RGB').save('seed%04d.png' % seed)
     display(PIL.Image.fromarray(images[0], 'RGB'))
+
+# this one is not ready yet
+# import math
+# from PIL import ImageFont
+# from PIL import ImageDraw
+# from PIL import Image
+# def interpolate_between_seeds_i(seed_array, truncation, duration_sec = 10.0, smoothing_sec = 1.0, mp4_fps = 20, filename=None, text=False):
+#     #_G, _D, Gs = pickle.load(open("/content/network-e621.pkl", "rb"))
+#     noise_vars = [var for name, var in Gs.components.synthesis.vars.items() if name.startswith('noise')]
+#     if seed_array[0] != seed_array[-1]:
+#         seed_array.append(seed_array[0])
+    
+#     Gs_kwargs = dnnlib.EasyDict()
+#     Gs_kwargs.output_transform = dict(func=tflib.convert_images_to_uint8, nchw_to_nhwc=True)
+#     Gs_kwargs.randomize_noise = False
+#     synthesis_kwargs = dict(output_transform=Gs_kwargs.output_transform, truncation_psi=truncation, minibatch_size=8)
+#     if truncation is not None:
+#         Gs_kwargs.truncation_psi = truncation
+#     rnd = np.random.RandomState(seed_array[0])
+#     tflib.set_vars({var: rnd.randn(*var.shape.as_list()) for var in noise_vars}) # [height, width]
+#     batch_size = 1
+#     all_seeds = seed_array #[seed] * batch_size
+#     all_z = np.stack([np.random.RandomState(seed).randn(*Gs.input_shape[1:]) for seed in all_seeds]) # [minibatch, component]
+#     #print(all_z)
+#     #print(all_z.shape)
+#     all_w = []
+
+#     labels = []
+#     for i, seed in enumerate(seed_array):
+#         z = np.stack([np.random.RandomState(seed).randn(*Gs.input_shape[1:])])
+#         #print(i, seed, z)
+#         all_w_src = Gs.components.mapping.run(z, None) # [minibatch, layer, component]
+#         if truncation != 1:
+#             w_avg = Gs.get_var('dlatent_avg')
+#             all_w_src = w_avg + (all_w_src - w_avg) * truncation # [minibatch, layer, component]
+#         all_w.append(all_w_src)
+#     #print(all_w)
+#     #print(len(all_w))
+        
+#     num_frames = int(np.rint(duration_sec * mp4_fps))
+        
+#     def make_frame(t):
+#         blend = ((len(seed_array)-1)*t/duration_sec)%1.0
+#         src_i = math.floor((t/duration_sec)*(len(seed_array)-1))
+#         dst_i = src_i + 1
+#         #print(t, blend, src_i, dst_i)
+#         all_w_new = (blend * all_w[dst_i]) + (1 - blend) * all_w[src_i]
+#         all_images_src = Gs.components.synthesis.run(all_w_new, randomize_noise=False, **synthesis_kwargs)
+#         #all_images_dst = Gs.components.synthesis.run(all_w_dst, randomize_noise=False, **synthesis_kwargs)
+#         if text:
+#             new_im = PIL.Image.new('RGB', (512, 600))
+#             new_im.paste(PIL.Image.fromarray(np.median(all_images_src, axis=0).astype(np.uint8)), (0, 0))
+#             draw = ImageDraw.Draw(new_im)
+#             font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", size=16)
+#             draw.text((10, 512), "{:0.2f}".format((1-blend)), (255, 0, 0), font=font)
+#             draw.text((50, 512), str(seed_array[src_i]), (255, 255, 255), font=font)
+#             draw.text((10, 550), "{:0.2f}".format((blend)), (0, 255, 0), font=font)
+#             draw.text((50, 550), str(seed_array[dst_i]), (255, 255, 255), font=font)
+#             return np.array(new_im)
+#         else:
+#             return all_images_src[0]
+
+    
+#     # import moviepy.editor
+#     # mp4_file = 'interp_%s-%s.mp4' % (seed_array, truncation)
+#     # if filename:
+#     #     mp4_file = filename
+#     # mp4_codec = 'libx264'
+#     # mp4_bitrate = '5M'
+
+#     #video_clip = moviepy.editor.VideoClip(make_frame, duration=duration_sec)
+#     #video_clip.write_videofile(mp4_file, fps=mp4_fps, codec=mp4_codec, bitrate=mp4_bitrate)
+    
+#     #return mp4_file
+#     frames = []
+#     for i in range(0, duration_sec*mp4_fps):
+#       my_image = Image.fromarray(make_frame(i/mp4_fps), 'RGB')
+#       # # for sergeposterlad
+#       # im_crop = my_image.crop((106, 31, 106+300, 31+450))
+#       # im_resize = im_crop.resize((512, 768), resample=PIL.Image.LANCZOS)
+#       # for square fruits
+#       im_resize = my_image.resize((512, 768), resample=PIL.Image.LANCZOS)
+#       im_resize.save('generated_images/image%05d.jpg' % i)
