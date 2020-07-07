@@ -151,7 +151,7 @@ def interpolate_between_seeds(seed_array, truncation, duration_sec = 10.0, smoot
     return mp4_file
 
 # make a circular interpolation video
- def circular_interpolation(seed_a, seed_b, seed_c, radius = 40.0):
+def circular_interpolation(seed_a, seed_b, seed_c, radius = 40.0):
     rnd = np.random
     latents_a = np.random.RandomState(seed_a).randn(1, Gs.input_shape[1])
     latents_b = np.random.RandomState(seed_b).randn(1, Gs.input_shape[1])
